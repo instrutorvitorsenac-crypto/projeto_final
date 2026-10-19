@@ -1,0 +1,32 @@
+{% extends "core/base.html" %}
+{% block title %}Seu perfil — ArtGallery{% endblock %}
+{% block content %}
+<section class="narrow-page form-panel">
+  <p class="eyebrow">Quase lá</p>
+  <h1>Conte um pouco sobre você</h1>
+  <p>Use seu perfil para descobrir obras ou apresentar seu trabalho na galeria.</p>
+  <form method="post" class="form-grid" id="profile-form">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="field{% if field.name == 'education_place' or field.name == 'styles' %} artist-only{% endif %}">
+      {% if field.field.widget.input_type == "checkbox" %}
+        <label class="checkbox-field">{{ field }} {{ field.label }}</label>
+      {% else %}
+        {{ field.label_tag }}{{ field }}
+      {% endif %}
+      {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+    </div>
+    {% endfor %}
+    <button class="button button-primary" type="submit">Salvar perfil</button>
+  </form>
+</section>
+<script>
+  const roleField = document.querySelector("#id_role");
+  const artistFields = document.querySelectorAll(".artist-only");
+  function updateArtistFields() {
+    artistFields.forEach((field) => field.hidden = roleField.value !== "artist");
+  }
+  roleField.addEventListener("change", updateArtistFields);
+  updateArtistFields();
+</script>
+{% endblock %}

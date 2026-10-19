@@ -1,0 +1,20 @@
+{% extends "core/base.html" %}
+{% block title %}Artistas — ArtGallery{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <header class="page-heading">
+    <p class="eyebrow">Gente que cria</p>
+    <h1>Artistas</h1>
+    <p>Conheça artistas, suas cidades e os caminhos que atravessam cada obra.</p>
+  </header>
+  <form method="get" class="filter-bar artist-filters">
+    <label>Buscar artista<input type="search" name="q" value="{{ filters.q }}" placeholder="Nome, cidade ou estilo"></label>
+    <label>Cidade<input type="text" name="city" value="{{ filters.city }}"></label>
+    <button class="button button-primary button-small" type="submit">Buscar</button>
+  </form>
+  <div class="artist-grid">
+    {% for artist in artists %}{% include "core/_artist_card.html" %}{% empty %}
+    <div class="empty-state"><h2>Nenhum artista encontrado</h2><p>Experimente outros termos de busca.</p></div>{% endfor %}
+  </div>
+</div>
+{% endblock %}

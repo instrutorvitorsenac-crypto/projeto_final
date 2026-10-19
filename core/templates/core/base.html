@@ -1,0 +1,52 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f3ee">
+    <meta name="description" content="ArtGallery: arte original, artistas independentes e novas conexões.">
+    <title>{% block title %}ArtGallery — arte que aproxima{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'core/styles.css' %}">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="{% url 'home' %}">
+        <span class="brand-mark">A</span><span>ArtGallery</span>
+      </a>
+      {% if user.is_authenticated %}
+      <nav class="main-nav" aria-label="Navegação principal">
+        <a href="{% url 'home' %}">Início</a>
+        <a href="{% url 'promotions' %}">Promoções</a>
+        <a href="{% url 'artists' %}">Artistas</a>
+        <a href="{% url 'artworks' %}">Obras</a>
+      </nav>
+      <div class="header-actions">
+        <a class="profile-link" href="{% url 'dashboard' %}">Olá, {{ user.email }}</a>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button class="link-button" type="submit">Sair</button>
+        </form>
+      </div>
+      {% endif %}
+    </header>
+    {% if messages %}
+    <div class="messages" role="status" aria-live="polite">
+      {% for message in messages %}
+      <p class="message {{ message.tags }}">{{ message }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="site-footer">
+      <a class="brand" href="{% url 'home' %}"><span class="brand-mark">A</span><span>ArtGallery</span></a>
+      <p>Uma galeria aberta para artistas independentes, colecionadores e quem está começando a olhar com calma.</p>
+      <small>© {% now "Y" %} ArtGallery. Projeto acadêmico demonstrativo.</small>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,44 @@
+{% extends "core/base.html" %}
+{% block title %}{{ artwork.title }} — ArtGallery{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <a class="text-link" href="{% url 'artworks' %}">← Voltar às obras</a>
+  <section class="detail-layout">
+    <div class="detail-gallery">
+      {% if artwork.display_image %}
+      <img class="detail-image" src="{{ artwork.display_image }}" alt="{{ artwork.title }}">
+      {% else %}
+      <div class="image-placeholder detail-image">Imagem indisponível</div>
+      {% endif %}
+    </div>
+    <div class="detail-copy">
+      <p class="eyebrow">{{ artwork.series|default:"Obra original" }}{% if artwork.promotion %} · Em promoção{% endif %}</p>
+      <h1>{{ artwork.title }}</h1>
+      <p class="artist-meta">{{ artwork.artist.name }} · {{ artwork.artist.city }}</p>
+      <p>{{ artwork.description|default:"Obra original de artista independente." }}</p>
+      <dl class="detail-specs">
+        <div><dt>Técnica</dt><dd>{{ artwork.technique }}</dd></div>
+        <div><dt>Material</dt><dd>{{ artwork.material }}</dd></div>
+        <div><dt>Estilo</dt><dd>{{ artwork.style }}</dd></div>
+        <div><dt>Dimensões</dt><dd>{{ artwork.width }} × {{ artwork.height }} cm</dd></div>
+        <div><dt>Localização</dt><dd>{{ artwork.artist.city }} · {{ artwork.artist.state }}</dd></div>
+        <div><dt>Observações</dt><dd>{{ artwork.observations|default:"Consulte o artista" }}</dd></div>
+      </dl>
+      <p class="detail-price">R$ {{ artwork.price|floatformat:2 }}</p>
+      <div class="form-actions">
+        <form method="post" action="{% url 'register_interest' artwork.pk %}">
+          {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button class="button button-primary" type="submit" {% if artwork.interested %}disabled{% endif %}>
+            {% if artwork.interested %}Interesse registrado{% else %}Tenho interesse nesta obra{% endif %}
+          </button>
+        </form>
+        <form method="post" action="{% url 'toggle_like' artwork.pk %}">
+          {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button class="button button-outline" type="submit">{% if artwork.is_liked %}♥ Curtida{% else %}♡ Curtir{% endif %}</button>
+        </form>
+      </div>
+      <p class="form-note">Projeto demonstrativo: registrar interesse não realiza pagamento.</p>
+    </div>
+  </section>
+</div>
+{% endblock %}

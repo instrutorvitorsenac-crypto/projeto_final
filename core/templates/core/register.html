@@ -1,0 +1,26 @@
+{% extends "core/base.html" %}
+{% block title %}Criar conta — ArtGallery{% endblock %}
+{% block content %}
+<section class="auth-layout">
+  <div class="auth-art">
+    <p class="eyebrow">Um espaço para descobrir</p>
+    <h1>Arte original.<br>Conexões reais.</h1>
+    <p>Crie sua conta para acompanhar artistas e descobrir novas obras.</p>
+  </div>
+  <div class="form-panel">
+    <p class="eyebrow">Faça parte da galeria</p>
+    <h2>Criar sua conta</h2>
+    <form method="post" class="form-grid">
+      {% csrf_token %}
+      {% for field in form %}
+      <div class="field">
+        {{ field.label_tag }}{{ field }}
+        {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+      {% endfor %}
+      <button class="button button-primary" type="submit">Continuar</button>
+    </form>
+    <p class="form-note">Já tem conta? <a href="{% url 'login' %}">Entrar</a></p>
+  </div>
+</section>
+{% endblock %}

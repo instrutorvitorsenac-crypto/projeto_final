@@ -1,0 +1,17 @@
+{% extends "core/base.html" %}
+{% block title %}Painel do artista — ArtGallery{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <section class="dashboard-heading">
+    <div><p class="eyebrow">Seu espaço criativo</p><h1>Olá, {{ profile.name }}.</h1><p>Gerencie suas obras publicadas na ArtGallery.</p></div>
+    <a class="button button-primary" href="{% url 'artwork_create' %}">Publicar obra</a>
+  </section>
+  <section class="home-section">
+    <h2>Suas obras</h2>
+    <div class="art-grid">
+      {% for work in works %}{% include "core/_artwork_card.html" %}{% empty %}
+      <div class="empty-state"><h3>Você ainda não publicou obras</h3><p>Compartilhe seu trabalho com quem está procurando arte.</p><a class="button button-outline" href="{% url 'artwork_create' %}">Publicar primeira obra</a></div>{% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}
