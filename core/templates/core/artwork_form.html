@@ -1,24 +1,32 @@
 {% extends "core/base.html" %}
-{% block title %}Publicar obra — ArtGallery{% endblock %}
+{% load static %}
+{% block title %}{% if is_edit %}Editar obra{% else %}Publicar obra{% endif %} — ArtGallery{% endblock %}
 {% block content %}
 <section class="narrow-page form-panel">
   <p class="eyebrow">Sua galeria</p>
-  <h1>Publicar uma obra</h1>
-  <p>Compartilhe a história e os detalhes do seu trabalho.</p>
+  <h1>{% if is_edit %}Editar obra{% else %}Publicar uma obra{% endif %}</h1>
+  <p>{% if is_edit %}Atualize as informações e os preços do seu trabalho.{% else %}Compartilhe a história e os detalhes do seu trabalho.{% endif %}</p>
   <form method="post" enctype="multipart/form-data" class="form-grid">
     {% csrf_token %}
     {% for field in form %}
-    <div class="field">
+    <div class="field{% if field.name == 'promotion_price' %} promotion-price-field{% endif %}"{% if field.name == 'promotion_price' %} data-promotion-price-field{% if not form.promotion.value %} hidden{% endif %}{% endif %}>
       {% if field.field.widget.input_type == "checkbox" %}
         <label class="checkbox-field">{{ field }} {{ field.label }}</label>
+      {% elif field.name == "images" %}
+        {{ field.label_tag }}{{ field }}
+        <small>Selecione uma ou mais imagens JPG, PNG, WEBP, HEIC ou HEIF. Até 10 MB por imagem.</small>
+        <div class="image-preview-grid" data-image-preview aria-live="polite"></div>
       {% else %}
         {{ field.label_tag }}{{ field }}
       {% endif %}
       {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
       {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      {% if field.name == 'promotion_price' %}<p class="field-error promotion-price-feedback" data-promotion-price-feedback hidden></p>{% endif %}
     </div>
     {% endfor %}
-    <button class="button button-primary" type="submit">Publicar obra</button>
+    <button class="button button-primary" type="submit">{% if is_edit %}Salvar alterações{% else %}Publicar obra{% endif %}</button>
   </form>
 </section>
+<script src="{% static 'core/artwork_form.js' %}" defer></script>
+<script src="{% static 'core/artwork_image_preview.js' %}" defer></script>
 {% endblock %}

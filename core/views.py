@@ -4,7 +4,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
-from django.db.models import Exists, OuterRef, Q
+from django.db.models import Exists, F, OuterRef, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -13,6 +13,7 @@ from .forms import ArtworkForm, ProfileForm, RegistrationForm
 from .models import (
     ArtistFollow,
     Artwork,
+    ArtworkImage,
     ArtworkInterest,
     ArtworkLike,
     Profile,
@@ -42,10 +43,17 @@ def login_view(request):
     form.fields["username"].widget.attrs.update(
         {"autocomplete": "email", "placeholder": "voce@exemplo.com"}
     )
+    next_url = request.POST.get("next", request.GET.get("next", ""))
     if request.method == "POST" and form.is_valid():
         login(request, form.get_user())
+        if url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={request.get_host()}
+        ):
+            return redirect(next_url)
         return redirect("home")
-    return render(request, "core/login.html", {"form": form})
+    return render(
+        request, "core/login.html", {"form": form, "next": next_url}
+    )
 
 
 @login_required
@@ -56,25 +64,49 @@ def logout_view(request):
     return redirect("login")
 
 
-@login_required
 def home(request):
-    profile = _profile_or_redirect(request)
-    if isinstance(profile, Profile):
-        works = _annotate_likes(
-            Artwork.objects.select_related("artist").all(), profile
-        )
-        featured = works.filter(promotion=True)[:4]
-        if not featured:
-            featured = works[:4]
-        artists = _annotate_follows(
-            Profile.objects.filter(role=Profile.Role.ARTIST), profile
-        )[:3]
-        return render(
-            request,
-            "core/home.html",
-            {"profile": profile, "featured": featured, "artists": artists},
-        )
-    return profile
+    try:
+        profile = request.user.profile if request.user.is_authenticated else None
+    except Profile.DoesNotExist:
+        profile = None
+
+    works = Artwork.objects.select_related(
+        "artist", "artist__user"
+    ).prefetch_related("images")
+    promoted = works.filter(
+        promotion=True,
+        promotion_price__isnull=False,
+        promotion_price__lt=F("price"),
+    )[:2]
+    regular = works.filter(promotion=False)[:2]
+    artists = Profile.objects.filter(role=Profile.Role.ARTIST)
+
+    if profile:
+        promoted = _annotate_likes(promoted, profile)
+        regular = _annotate_likes(regular, profile)
+        artists = _annotate_follows(artists, profile)
+    featured = list(promoted) + list(regular)
+    followed_works = Artwork.objects.none()
+    if profile:
+        followed_works = _annotate_likes(
+            Artwork.objects.filter(
+                artist__artist_followers__follower=profile
+            )
+            .select_related("artist", "artist__user")
+            .prefetch_related("images"),
+            profile,
+        )[:6]
+
+    return render(
+        request,
+        "core/home.html",
+        {
+            "profile": profile,
+            "featured": featured,
+            "artists": artists[:3],
+            "followed_works": followed_works,
+        },
+    )
 
 
 @login_required
@@ -100,13 +132,16 @@ def dashboard(request):
         return profile
     if profile.role == Profile.Role.ARTIST:
         works = _annotate_likes(
-            profile.artworks.select_related("artist"), profile
+            profile.artworks.select_related("artist").prefetch_related("images"),
+            profile,
         )
         return render(
             request, "core/artist_dashboard.html", {"profile": profile, "works": works}
         )
     liked_works = _annotate_likes(
-        Artwork.objects.filter(likes__profile=profile).select_related("artist"),
+        Artwork.objects.filter(likes__profile=profile)
+        .select_related("artist")
+        .prefetch_related("images"),
         profile,
     )
     followed_artists = _annotate_follows(
@@ -150,7 +185,7 @@ def artwork_list(request, category="artworks"):
             {"profile": profile, "artists": artists, "filters": request.GET},
         )
 
-    works = Artwork.objects.select_related("artist")
+    works = Artwork.objects.select_related("artist").prefetch_related("images")
     if category == "promotions":
         works = works.filter(promotion=True)
     if query := request.GET.get("q", "").strip():
@@ -206,8 +241,11 @@ def artwork_detail(request, pk):
     if not isinstance(profile, Profile):
         return profile
     artwork = get_object_or_404(
-        Artwork.objects.select_related("artist"), pk=pk
+        Artwork.objects.select_related("artist", "artist__user")
+        .prefetch_related("images"),
+        pk=pk,
     )
+    artwork_images = artwork.images.all()
     artwork.is_liked = ArtworkLike.objects.filter(
         profile=profile, artwork=artwork
     ).exists()
@@ -220,7 +258,11 @@ def artwork_detail(request, pk):
     return render(
         request,
         "core/artwork_detail.html",
-        {"profile": profile, "artwork": artwork},
+        {
+            "profile": profile,
+            "artwork": artwork,
+            "artwork_images": artwork_images,
+        },
     )
 
 
@@ -237,10 +279,35 @@ def artwork_create(request):
         artwork = form.save(commit=False)
         artwork.artist = profile
         artwork.save()
+        _save_artwork_images(artwork, form)
         messages.success(request, "Sua obra foi publicada na galeria.")
         return redirect("dashboard")
     return render(
-        request, "core/artwork_form.html", {"profile": profile, "form": form}
+        request,
+        "core/artwork_form.html",
+        {"profile": profile, "form": form, "is_edit": False},
+    )
+
+
+@login_required
+def artwork_edit(request, pk):
+    profile = _profile_or_redirect(request)
+    if not isinstance(profile, Profile):
+        return profile
+    if profile.role != Profile.Role.ARTIST:
+        messages.error(request, "Somente artistas podem editar obras.")
+        return redirect("dashboard")
+    artwork = get_object_or_404(Artwork, pk=pk, artist=profile)
+    form = ArtworkForm(request.POST or None, request.FILES or None, instance=artwork)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        _save_artwork_images(artwork, form)
+        messages.success(request, "As informações da obra foram atualizadas.")
+        return redirect("dashboard")
+    return render(
+        request,
+        "core/artwork_form.html",
+        {"profile": profile, "form": form, "is_edit": True, "artwork": artwork},
     )
 
 
@@ -309,6 +376,17 @@ def _profile_or_redirect(request):
     except Profile.DoesNotExist:
         messages.info(request, "Complete seu perfil para acessar a galeria.")
         return redirect("profile_setup")
+
+
+def _save_artwork_images(artwork, form):
+    position = artwork.images.count()
+    for image in form.cleaned_data.get("images", []):
+        ArtworkImage.objects.create(
+            artwork=artwork,
+            image=image,
+            position=position,
+        )
+        position += 1
 
 
 def _annotate_likes(works, profile):

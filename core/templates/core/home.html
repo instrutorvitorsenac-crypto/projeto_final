@@ -9,17 +9,21 @@
       <p>Obras originais, histórias únicas e artistas independentes de todo o Brasil.</p>
       <a class="button button-light" href="{% url 'artworks' %}">Explorar obras →</a>
     </div>
-    <div class="hero-visual">
-      {% with work=featured|first %}
-        {% if work and work.display_image %}
-          <img src="{{ work.display_image }}" alt="{{ work.title }}">
-          <div class="hero-caption"><strong>{{ work.title }}</strong><span>{{ work.artist.name }}</span></div>
-        {% else %}
-          <div class="hero-art-placeholder">A arte começa por aqui</div>
-        {% endif %}
-      {% endwith %}
+    <div class="hero-visual"><div class="hero-art-placeholder">A arte começa por aqui</div></div>
+  </section>
+  {% if followed_works %}
+  <section class="home-section">
+    <div class="section-heading">
+      <div><p class="eyebrow">Seu feed personalizado</p><h2>Novidades de artistas que você segue</h2></div>
+      <a class="text-link" href="{% url 'dashboard' %}">Ver perfil →</a>
+    </div>
+    <div class="art-grid">
+      {% for work in followed_works %}
+      {% include "core/_artwork_card.html" %}
+      {% endfor %}
     </div>
   </section>
+  {% endif %}
   <section class="home-section">
     <div class="section-heading">
       <div><p class="eyebrow">Gente que cria</p><h2>Artistas para acompanhar</h2></div>
@@ -39,13 +43,52 @@
   </section>
   <section class="home-section">
     <div class="section-heading">
-      <div><p class="eyebrow">Feitas para encontrar um lugar</p><h2>Obras em destaque</h2></div>
-      <a class="text-link" href="{% url 'promotions' %}">Ver promoções →</a>
+      <div><p class="eyebrow">Quatro obras selecionadas</p><h2>Em destaque na galeria</h2></div>
+      <div class="carousel-controls" aria-label="Controles do carrossel">
+        <button class="button button-outline button-small" type="button" data-carousel-previous aria-label="Obra anterior">←</button>
+        <span class="carousel-position" data-carousel-position aria-live="polite">1 / {{ featured|length }}</span>
+        <button class="button button-outline button-small" type="button" data-carousel-next aria-label="Próxima obra">→</button>
+      </div>
     </div>
-    <div class="art-grid">
-      {% for work in featured %}{% include "core/_artwork_card.html" %}{% empty %}
-      <p class="empty-state">Ainda não há obras publicadas. Volte em breve.</p>{% endfor %}
+    <div class="featured-carousel" data-featured-carousel aria-label="Obras em destaque">
+      {% for work in featured %}
+      <article class="featured-slide" data-carousel-slide{% if not forloop.first %} hidden{% endif %}>
+        <a class="featured-art-image" href="{% url 'artwork_detail' work.pk %}">
+          {% if work.display_image %}
+          <img src="{{ work.display_image }}" alt="{{ work.title }}">
+          {% else %}
+          <span class="image-placeholder">Imagem indisponível</span>
+          {% endif %}
+          {% if work.promotion %}<span class="sale-badge">Promoção</span>{% endif %}
+        </a>
+        <div class="featured-art-copy">
+          <p class="eyebrow">{% if work.promotion %}Em promoção{% else %}Obra original{% endif %} · {{ work.series|default:"Peça independente" }}</p>
+          <h3><a href="{% url 'artwork_detail' work.pk %}">{{ work.title }}</a></h3>
+          <p class="featured-artist">{{ work.artist.name }} · {{ work.artist.city }}{% if work.artist.state %}, {{ work.artist.state }}{% endif %}</p>
+          <p>{{ work.description|default:"Obra original de artista independente." }}</p>
+          <dl class="featured-specs">
+            <div><dt>Estilo</dt><dd>{{ work.style }}</dd></div>
+            <div><dt>Técnica</dt><dd>{{ work.technique }}</dd></div>
+            <div><dt>Material</dt><dd>{{ work.material }}</dd></div>
+            <div><dt>Dimensões</dt><dd>{{ work.width }} × {{ work.height }} cm</dd></div>
+            <div><dt>Artista</dt><dd>{{ work.artist.styles|default:"Artista independente" }}</dd></div>
+          </dl>
+          <p class="featured-price">
+            {% if work.promotion and work.promotion_price %}
+            <span class="regular-price">R$ {{ work.price|floatformat:2 }}</span>
+            <span class="promotion-price">R$ {{ work.promotion_price|floatformat:2 }}</span>
+            {% else %}
+            <span>R$ {{ work.price|floatformat:2 }}</span>
+            {% endif %}
+          </p>
+          <a class="button button-primary" href="{% url 'artwork_detail' work.pk %}">{% if user.is_authenticated %}Ver obra e falar com artista{% else %}Entrar para ver detalhes{% endif %}</a>
+        </div>
+      </article>
+      {% empty %}
+      <p class="empty-state">Ainda não há obras suficientes para a seleção.</p>
+      {% endfor %}
     </div>
   </section>
 </div>
+<script src="{% static 'core/home_carousel.js' %}" defer></script>
 {% endblock %}

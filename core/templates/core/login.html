@@ -12,6 +12,7 @@
     <h2>Entrar na ArtGallery</h2>
     <form method="post" class="form-grid">
       {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
       {{ form.non_field_errors }}
       {% for field in form %}
       <div class="field">
@@ -21,6 +22,7 @@
       {% endfor %}
       <button class="button button-primary" type="submit">Entrar</button>
     </form>
+    <p class="form-note"><a href="{% url 'password_reset' %}">Esqueci minha senha</a></p>
     <p class="form-note">Ainda não tem conta? <a href="{% url 'register' %}">Criar cadastro</a></p>
   </div>
 </section>

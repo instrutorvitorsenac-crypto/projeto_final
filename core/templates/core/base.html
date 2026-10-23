@@ -17,19 +17,24 @@
       <a class="brand" href="{% url 'home' %}">
         <span class="brand-mark">A</span><span>ArtGallery</span>
       </a>
-      {% if user.is_authenticated %}
       <nav class="main-nav" aria-label="Navegação principal">
         <a href="{% url 'home' %}">Início</a>
         <a href="{% url 'promotions' %}">Promoções</a>
         <a href="{% url 'artists' %}">Artistas</a>
         <a href="{% url 'artworks' %}">Obras</a>
       </nav>
+      {% if user.is_authenticated %}
       <div class="header-actions">
         <a class="profile-link" href="{% url 'dashboard' %}">Olá, {{ user.email }}</a>
         <form method="post" action="{% url 'logout' %}">
           {% csrf_token %}
           <button class="link-button" type="submit">Sair</button>
         </form>
+      </div>
+      {% else %}
+      <div class="header-actions">
+        <a class="profile-link" href="{% url 'login' %}">Entrar</a>
+        <a class="button button-primary button-small" href="{% url 'register' %}">Criar conta</a>
       </div>
       {% endif %}
     </header>

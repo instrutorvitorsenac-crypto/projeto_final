@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load static %}
 {% block title %}Criar conta — ArtGallery{% endblock %}
 {% block content %}
 <section class="auth-layout">
@@ -10,6 +11,16 @@
   <div class="form-panel">
     <p class="eyebrow">Faça parte da galeria</p>
     <h2>Criar sua conta</h2>
+    <div class="password-requirements">
+      <strong>Requisitos da senha</strong>
+      <ul class="password-checklist" data-password-checklist>
+        <li data-rule="length">No mínimo 8 caracteres</li>
+        <li data-rule="upper">Pelo menos uma letra maiúscula</li>
+        <li data-rule="lower">Pelo menos uma letra minúscula</li>
+        <li data-rule="number">Pelo menos um número</li>
+        <li data-rule="special">Pelo menos um caractere especial (por exemplo: !@#)</li>
+      </ul>
+    </div>
     <form method="post" class="form-grid">
       {% csrf_token %}
       {% for field in form %}
@@ -23,4 +34,5 @@
     <p class="form-note">Já tem conta? <a href="{% url 'login' %}">Entrar</a></p>
   </div>
 </section>
+<script src="{% static 'core/password_requirements.js' %}" defer></script>
 {% endblock %}

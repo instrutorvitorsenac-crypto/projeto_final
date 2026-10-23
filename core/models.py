@@ -57,6 +57,13 @@ class Artwork(models.Model):
         max_digits=10, decimal_places=2, validators=[MinValueValidator(0)]
     )
     promotion = models.BooleanField(default=False)
+    promotion_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(0)],
+    )
     observations = models.TextField(blank=True)
     image = models.FileField(
         upload_to="artworks/",
@@ -70,15 +77,46 @@ class Artwork(models.Model):
 
     class Meta:
         ordering = ("-created_at", "-id")
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    Q(promotion=False)
+                    | Q(promotion_price__isnull=False, promotion_price__lt=models.F("price"))
+                ),
+                name="promotion_price_below_regular_price",
+            )
+        ]
 
     def __str__(self):
         return self.title
 
     @property
     def display_image(self):
+        gallery_image = next(iter(self.images.all()), None)
+        if gallery_image:
+            return gallery_image.image.url
         if self.image:
             return self.image.url
         return self.image_url or ""
+
+
+class ArtworkImage(models.Model):
+    artwork = models.ForeignKey(
+        Artwork, on_delete=models.CASCADE, related_name="images"
+    )
+    image = models.FileField(
+        upload_to="artworks/",
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=["jpg", "jpeg", "png", "webp", "heic", "heif"]
+            )
+        ],
+    )
+    position = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("position", "id")
 
 
 class ArtworkLike(models.Model):
